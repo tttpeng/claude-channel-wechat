@@ -42,7 +42,7 @@ function setup() {
   console.log("Setup complete! To use:\n");
   console.log("  claude --dangerously-load-development-channels server:wechat\n");
   console.log("First time will open a QR code page in your browser — scan with WeChat to pair.");
-  console.log("Token is cached at ~/.config/claude-channel-wechat/token.json\n");
+  console.log("Token is cached at ~/.claude/channels/wechat/token.json\n");
 }
 
 setup();

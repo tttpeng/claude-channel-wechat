@@ -16,7 +16,7 @@ allowed-tools:
 # /wechat:wechat-configure — WeChat Channel Setup
 
 Manages WeChat iLink login and orients the user on connection status.
-Token is stored at `~/.config/claude-channel-wechat/token.json`.
+Token is stored at `~/.claude/channels/wechat/token.json`.
 
 Arguments passed: `$ARGUMENTS`
 
@@ -28,7 +28,7 @@ Arguments passed: `$ARGUMENTS`
 
 Read the token file and give the user a complete picture:
 
-1. **Token** — check `~/.config/claude-channel-wechat/token.json`.
+1. **Token** — check `~/.claude/channels/wechat/token.json`.
    - If exists: show Bot ID (part before `:`), created time, and test connection:
      ```bash
      bun -e "
@@ -90,7 +90,7 @@ claude --dangerously-load-development-channels server:wechat
 
 1. Delete the token file:
    ```bash
-   rm -f ~/.config/claude-channel-wechat/token.json
+   rm -f ~/.claude/channels/wechat/token.json
    ```
 2. Confirm: *"Token removed. Run `/wechat:wechat-configure login` to re-authenticate with a new account."*
 

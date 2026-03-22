@@ -2,7 +2,7 @@
 /**
  * Standalone WeChat QR login tool.
  * Called by /wechat:wechat-configure login skill.
- * Saves token to ~/.config/claude-channel-wechat/token.json
+ * Saves token to ~/.claude/channels/wechat/token.json
  */
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from "fs";
 import { join } from "path";
@@ -10,7 +10,7 @@ import { homedir } from "os";
 import QRCode from "qrcode";
 
 const ILINK_BASE_URL = "https://ilinkai.weixin.qq.com";
-const CONFIG_DIR = join(homedir(), ".config", "claude-channel-wechat");
+const CONFIG_DIR = join(homedir(), ".claude", "channels", "wechat");
 const TOKEN_FILE = join(CONFIG_DIR, "token.json");
 
 function randomUin(): string {

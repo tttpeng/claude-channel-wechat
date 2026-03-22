@@ -60,7 +60,7 @@ Then configure the WeChat connection:
 2. Run `/wechat:wechat-configure login` — it will guide you to open another terminal and scan a QR code with WeChat
 3. After login succeeds, restart Claude Code with the same command above
 
-Token is cached at `~/.config/claude-channel-wechat/token.json` — no need to re-scan next time.
+Token is cached at `~/.claude/channels/wechat/token.json` — no need to re-scan next time.
 
 ### Commands
 
@@ -156,7 +156,7 @@ claude --dangerously-load-development-channels plugin:wechat@claude-channel-wech
 2. 运行 `/wechat:wechat-configure login` — 会引导你在另一个终端打开并用微信扫码
 3. 登录成功后，用上面相同的命令重启 Claude Code
 
-Token 会缓存到 `~/.config/claude-channel-wechat/token.json`，之后无需重复扫码。
+Token 会缓存到 `~/.claude/channels/wechat/token.json`，之后无需重复扫码。
 
 ### 命令
 

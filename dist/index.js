@@ -18041,7 +18041,7 @@ var import_qrcode = __toESM(require_server(), 1);
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
-var CONFIG_DIR = join(homedir(), ".config", "claude-channel-wechat");
+var CONFIG_DIR = join(homedir(), ".claude", "channels", "wechat");
 var TOKEN_FILE = join(CONFIG_DIR, "token.json");
 function loadStoredToken() {
   if (!existsSync(TOKEN_FILE))

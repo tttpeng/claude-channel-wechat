@@ -4,7 +4,7 @@ import { homedir } from "os";
 import QRCode from "qrcode";
 
 const ILINK_BASE_URL = "https://ilinkai.weixin.qq.com";
-const CONFIG_DIR = join(homedir(), ".config", "claude-channel-wechat");
+const CONFIG_DIR = join(homedir(), ".claude", "channels", "wechat");
 const TOKEN_FILE = join(CONFIG_DIR, "token.json");
 
 interface StoredToken {
