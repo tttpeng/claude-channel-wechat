@@ -9,7 +9,10 @@
   "plugins": [
     {
       "name": "wechat",
-      "source": "./",
+      "source": {
+        "source": "github",
+        "repo": "tttpeng/claude-channel-wechat"
+      },
       "description": "WeChat channel for Claude Code — receive and reply to WeChat messages via iLink protocol",
       "version": "0.1.0"
     }
