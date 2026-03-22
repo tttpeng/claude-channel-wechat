@@ -16,7 +16,7 @@ WeChat channel plugin for Claude Code. Control your Claude Code session remotely
 
 ### Installation
 
-#### Option 1: Plugin Marketplace (recommended for teams)
+#### Option 1: Plugin Marketplace (recommended)
 
 In Claude Code, run:
 
@@ -24,8 +24,6 @@ In Claude Code, run:
 /plugin marketplace add tttpeng/claude-channel-wechat
 /plugin install wechat@claude-channel-wechat
 ```
-
-> The repository must be readable by your team members.
 
 #### Option 2: Manual Installation
 
@@ -36,21 +34,35 @@ bun install
 bun run setup
 ```
 
-### Usage
+### Setup
+
+After installation, start Claude Code with the channel enabled:
 
 ```bash
-# Plugin mode
 claude --dangerously-load-development-channels plugin:wechat@claude-channel-wechat
+```
 
-# Manual mode
+Or for manual installation:
+
+```bash
 claude --dangerously-load-development-channels server:wechat
 ```
 
-### First-time Setup
+Then configure the WeChat connection:
 
-1. On launch, a QR code appears in your terminal
-2. Scan it with WeChat to authenticate
-3. Token is cached at `~/.config/claude-channel-wechat/token.json` — no need to re-scan next time
+1. Run `/wechat:wechat-configure` to check status
+2. Run `/wechat:wechat-configure login` — it will guide you to open another terminal and scan a QR code with WeChat
+3. After login succeeds, restart Claude Code with the same command above
+
+Token is cached at `~/.config/claude-channel-wechat/token.json` — no need to re-scan next time.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/wechat:wechat-configure` | Check connection status, guided setup |
+| `/wechat:wechat-configure login` | Start QR login in external terminal |
+| `/wechat:wechat-configure clear` | Remove saved token (logout) |
 
 ### Supported Message Types
 
@@ -61,12 +73,6 @@ claude --dangerously-load-development-channels server:wechat
 | Voice | Yes (transcription) | No |
 | File | Yes (filename) | No |
 | Video | Yes (notification) | No |
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `/wechat:configure` | Check connection status, re-login, view features |
 
 ### How It Works
 
@@ -84,7 +90,7 @@ WeChat User <--iLink API--> MCP Server (local) <--stdio--> Claude Code
 
 - The iLink API is officially provided by Tencent for OpenClaw. Bridging it to Claude Code is at your own risk regarding WeChat's terms of service.
 - Channels are in research preview — `--dangerously-load-development-channels` is required.
-- If the token expires, delete `~/.config/claude-channel-wechat/token.json` and re-scan.
+- If the token expires, run `/wechat:wechat-configure clear` then `/wechat:wechat-configure login` to re-authenticate.
 
 ---
 
@@ -100,7 +106,7 @@ WeChat User <--iLink API--> MCP Server (local) <--stdio--> Claude Code
 
 ### 安装
 
-#### 方式一：Plugin Marketplace（推荐，适合团队）
+#### 方式一：Plugin Marketplace（推荐）
 
 在 Claude Code 中执行：
 
@@ -108,8 +114,6 @@ WeChat User <--iLink API--> MCP Server (local) <--stdio--> Claude Code
 /plugin marketplace add tttpeng/claude-channel-wechat
 /plugin install wechat@claude-channel-wechat
 ```
-
-> 仓库需要对团队成员可读。
 
 #### 方式二：手动安装
 
@@ -120,21 +124,35 @@ bun install
 bun run setup
 ```
 
-### 使用
+### 配置
+
+安装后，启动 Claude Code 并启用 channel：
 
 ```bash
-# 插件模式
 claude --dangerously-load-development-channels plugin:wechat@claude-channel-wechat
+```
 
-# 手动模式
+手动安装方式：
+
+```bash
 claude --dangerously-load-development-channels server:wechat
 ```
 
-### 首次使用
+然后配置微信连接：
 
-1. 启动后终端会显示二维码
-2. 用微信扫码确认
-3. Token 自动缓存到 `~/.config/claude-channel-wechat/token.json`，之后无需重复扫码
+1. 运行 `/wechat:wechat-configure` 查看状态
+2. 运行 `/wechat:wechat-configure login` — 会引导你在另一个终端打开并用微信扫码
+3. 登录成功后，用上面相同的命令重启 Claude Code
+
+Token 会缓存到 `~/.config/claude-channel-wechat/token.json`，之后无需重复扫码。
+
+### 命令
+
+| 命令 | 说明 |
+|------|------|
+| `/wechat:wechat-configure` | 查看连接状态，引导配置 |
+| `/wechat:wechat-configure login` | 在外部终端启动扫码登录 |
+| `/wechat:wechat-configure clear` | 删除 token（退出登录） |
 
 ### 支持的消息类型
 
@@ -145,12 +163,6 @@ claude --dangerously-load-development-channels server:wechat
 | 语音 | 支持（语音转文字） | 不支持 |
 | 文件 | 支持（文件名） | 不支持 |
 | 视频 | 支持（通知） | 不支持 |
-
-### 命令
-
-| 命令 | 说明 |
-|------|------|
-| `/wechat:configure` | 查看连接状态、重新登录、功能列表 |
 
 ### 工作原理
 
@@ -168,4 +180,4 @@ claude --dangerously-load-development-channels server:wechat
 
 - iLink 协议由腾讯为 OpenClaw 开放，桥接到 Claude Code 的合规性需自行评估
 - Channel 功能目前在研究预览阶段，必须使用 `--dangerously-load-development-channels`
-- Token 失效后删除 `~/.config/claude-channel-wechat/token.json` 重新扫码即可
+- Token 失效后运行 `/wechat:wechat-configure clear` 再 `/wechat:wechat-configure login` 重新认证
