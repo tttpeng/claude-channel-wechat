@@ -1,0 +1,17 @@
+{
+  "name": "claude-channel-wechat",
+  "owner": {
+    "name": "tttpeng"
+  },
+  "metadata": {
+    "description": "WeChat channel plugin for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "wechat",
+      "source": "./",
+      "description": "WeChat channel for Claude Code — receive and reply to WeChat messages via iLink protocol",
+      "version": "0.1.0"
+    }
+  ]
+}
