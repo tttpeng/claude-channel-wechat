@@ -14,7 +14,7 @@
         "repo": "tttpeng/claude-channel-wechat"
       },
       "description": "WeChat channel for Claude Code — receive and reply to WeChat messages via iLink protocol",
-      "version": "0.5.0"
+      "version": "0.5.1"
     }
   ]
 }
