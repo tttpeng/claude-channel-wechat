@@ -18223,10 +18223,10 @@ async function uploadMedia(botToken, baseUrl, toUserId, filePath, mediaType) {
         console.error(`[wechat] CDN upload attempt ${attempt} failed: ${uploadRes.status}`);
         continue;
       }
-      downloadParam = uploadRes.headers.get("x-encrypted-param") || "";
+      downloadParam = uploadRes.headers.get("x-encrypted-query-param") || "";
       if (downloadParam)
         break;
-      console.error(`[wechat] CDN upload attempt ${attempt}: missing x-encrypted-param`);
+      console.error(`[wechat] CDN upload attempt ${attempt}: missing x-encrypted-query-param`);
     } catch (e) {
       console.error(`[wechat] CDN upload attempt ${attempt} error:`, e);
       if (attempt === UPLOAD_MAX_RETRIES)
