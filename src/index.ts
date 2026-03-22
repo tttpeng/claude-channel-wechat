@@ -16,6 +16,8 @@ Inbound messages appear as <channel source="wechat" chat_id="..." context_token=
 
 Only the reply tool is available — WeChat's API does not support editing sent messages or adding reactions.
 
+The reply tool accepts file paths (files: ["/abs/path.png"]) for attachments. Images (jpg/png/gif/webp) are sent as image messages; other file types as file attachments.
+
 Write short, plain-text responses. WeChat does not render markdown, so avoid formatting like bold, headers, or bullet syntax.
 
 If a message includes an image_path attribute, use the Read tool to view the attached photo. Voice messages include a transcription prefixed with [语音转文字]. File attachments show as [文件] followed by the filename.

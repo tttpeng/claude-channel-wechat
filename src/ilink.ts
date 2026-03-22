@@ -13,22 +13,51 @@ export interface WeixinTextItem {
 
 export interface WeixinImageItem {
   type: 2;
-  image_item: { url: string; aes_key: string; file_size?: number };
+  image_item: {
+    url: string;
+    aeskey?: string;
+    aes_key?: string;
+    media?: { encrypt_query_param: string; aes_key?: string };
+    file_size?: number;
+  };
 }
 
 export interface WeixinVoiceItem {
   type: 3;
-  voice_item: { url: string; aes_key: string; voice_text?: string; duration_ms?: number };
+  voice_item: {
+    url: string;
+    aeskey?: string;
+    aes_key?: string;
+    voice_text?: string;
+    text?: string;
+    playtime?: number;
+    media?: { encrypt_query_param: string; aes_key?: string };
+  };
 }
 
 export interface WeixinFileItem {
   type: 4;
-  file_item: { url: string; aes_key: string; file_name: string; file_size?: number };
+  file_item: {
+    url: string;
+    aeskey?: string;
+    aes_key?: string;
+    file_name: string;
+    file_size?: number;
+    media?: { encrypt_query_param: string; aes_key?: string };
+  };
 }
 
 export interface WeixinVideoItem {
   type: 5;
-  video_item: { url: string; aes_key: string; thumb_url?: string; duration_ms?: number };
+  video_item: {
+    url: string;
+    aeskey?: string;
+    aes_key?: string;
+    thumb_url?: string;
+    duration_ms?: number;
+    play_length?: number;
+    media?: { encrypt_query_param: string; aes_key?: string };
+  };
 }
 
 export type WeixinItem = WeixinTextItem | WeixinImageItem | WeixinVoiceItem | WeixinFileItem | WeixinVideoItem;
@@ -158,6 +187,60 @@ export class ILinkClient {
       console.error(`[wechat] sendmessage error:`, err);
       return false;
     }
+  }
+
+  async sendMediaItem(
+    toUserId: string,
+    contextToken: string,
+    item: Record<string, unknown>
+  ): Promise<boolean> {
+    const payload = {
+      msg: {
+        from_user_id: "",
+        to_user_id: toUserId,
+        client_id: `cc-${crypto.randomUUID()}`,
+        message_type: 2,
+        message_state: 2,
+        context_token: contextToken,
+        item_list: [item],
+      },
+    };
+
+    console.error(`[wechat] sendMediaItem: type=${item.type}, to=${toUserId}`);
+    try {
+      const body = JSON.stringify(payload);
+      const headers = makeHeaders(this.token);
+      headers["Content-Length"] = String(new TextEncoder().encode(body).byteLength);
+
+      const res = await fetch(`${this.baseUrl}/ilink/bot/sendmessage`, {
+        method: "POST",
+        headers,
+        body,
+      });
+
+      const resText = await res.text();
+      console.error(`[wechat] sendMediaItem HTTP ${res.status}: ${resText.slice(0, 300)}`);
+
+      try {
+        const resData = JSON.parse(resText);
+        if (typeof resData.ret === "number" && resData.ret < 0) {
+          console.error(`[wechat] sendMediaItem error: ret=${resData.ret}`);
+          return false;
+        }
+      } catch {}
+      return true;
+    } catch (err) {
+      console.error(`[wechat] sendMediaItem error:`, err);
+      return false;
+    }
+  }
+
+  getToken(): string {
+    return this.token;
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   async sendTyping(toUserId: string, typingTicket: string): Promise<void> {

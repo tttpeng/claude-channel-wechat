@@ -109,6 +109,9 @@ export class MessagePoller {
   }
 
   private async extractContent(item: WeixinItem): Promise<{ text: string; imagePath?: string }> {
+    // Debug: log raw item structure
+    console.error(`[wechat] Raw item: ${JSON.stringify(item).slice(0, 1000)}`);
+
     switch (item.type) {
       case 1: {
         let text = item.text_item.text;
@@ -120,12 +123,14 @@ export class MessagePoller {
       }
 
       case 2: {
+        const encryptParam = item.image_item.media?.encrypt_query_param;
+        const aesKey = item.image_item.aeskey || item.image_item.aes_key || item.image_item.media?.aes_key;
+        if (!encryptParam) {
+          console.error("[wechat] Image missing encrypt_query_param or aeskey");
+          return { text: "[图片]" };
+        }
         try {
-          const path = await downloadMedia(
-            item.image_item.url,
-            item.image_item.aes_key,
-            "image.jpg"
-          );
+          const path = await downloadMedia(encryptParam, aesKey, "image.jpg");
           return { text: "", imagePath: path };
         } catch (e) {
           console.error("[wechat] Failed to download image:", e);
@@ -134,18 +139,43 @@ export class MessagePoller {
       }
 
       case 3: {
-        const voiceText = item.voice_item.voice_text;
+        const voiceText = item.voice_item.text || item.voice_item.voice_text;
         if (voiceText) {
           return { text: `[语音转文字] ${voiceText}` };
         }
         return { text: "[语音消息]" };
       }
 
-      case 4:
-        return { text: `[文件] ${item.file_item.file_name}` };
+      case 4: {
+        const fileEncrypt = item.file_item.media?.encrypt_query_param;
+        const fileKey = item.file_item.aeskey || item.file_item.aes_key || item.file_item.media?.aes_key;
+        const fileName = item.file_item.file_name || "file";
+        if (!fileEncrypt) {
+          return { text: `[文件] ${fileName}` };
+        }
+        try {
+          const path = await downloadMedia(fileEncrypt, fileKey, fileName);
+          return { text: `[文件] ${fileName}`, imagePath: path };
+        } catch (e) {
+          console.error("[wechat] Failed to download file:", e);
+          return { text: `[文件] ${fileName}` };
+        }
+      }
 
-      case 5:
-        return { text: "[视频消息]" };
+      case 5: {
+        const videoEncrypt = item.video_item.media?.encrypt_query_param;
+        const videoKey = item.video_item.aeskey || item.video_item.aes_key || item.video_item.media?.aes_key;
+        if (!videoEncrypt) {
+          return { text: "[视频消息]" };
+        }
+        try {
+          const path = await downloadMedia(videoEncrypt, videoKey, "video.mp4");
+          return { text: "[视频]", imagePath: path };
+        } catch (e) {
+          console.error("[wechat] Failed to download video:", e);
+          return { text: "[视频 - 下载失败]" };
+        }
+      }
 
       default:
         return { text: "[未知消息类型]" };
