@@ -6,7 +6,7 @@ import {
   CallToolRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { ILinkClient } from "./ilink.js";
-import { login } from "./auth.js";
+import { loadStoredToken } from "./auth.js";
 import { MessagePoller } from "./poller.js";
 import { TOOLS, handleToolCall } from "./tools.js";
 
@@ -20,12 +20,13 @@ Write short, plain-text responses. WeChat does not render markdown, so avoid for
 
 If a message includes an image_path attribute, use the Read tool to view the attached photo. Voice messages include a transcription prefixed with [语音转文字]. File attachments show as [文件] followed by the filename.
 
-Preserve any important details from tool results in your response text, since earlier tool output may be compacted later.`;
+Preserve any important details from tool results in your response text, since earlier tool output may be compacted later.
+
+When the channel is not connected, guide the user to run /wechat:wechat-configure to set up.`;
 
 async function main() {
   console.error("[wechat] Starting WeChat channel plugin...");
 
-  // Create MCP server FIRST — Claude Code expects a fast stdio handshake
   const server = new Server(
     { name: "wechat", version: "0.1.0" },
     {
@@ -37,11 +38,9 @@ async function main() {
     }
   );
 
-  // These will be set after login completes
   let client: ILinkClient | null = null;
   let poller: MessagePoller | null = null;
 
-  // Register tools (available immediately, but reply will fail until login completes)
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: TOOLS,
   }));
@@ -49,7 +48,7 @@ async function main() {
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     if (!client || !poller) {
       return {
-        content: [{ type: "text", text: "WeChat is still logging in, please wait..." }],
+        content: [{ type: "text", text: "WeChat not connected. Run /wechat:wechat-configure login to authenticate." }],
         isError: true,
       };
     }
@@ -57,19 +56,22 @@ async function main() {
     return handleToolCall(name, (args || {}) as Record<string, unknown>, client, poller);
   });
 
-  // Connect to Claude Code over stdio BEFORE login
+  // Connect MCP immediately
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("[wechat] MCP server connected via stdio.");
 
-  // Now authenticate (this may block waiting for QR scan)
-  const { token, baseUrl } = await login();
-  client = new ILinkClient(token, baseUrl);
-
-  // Create and start poller
-  poller = new MessagePoller(client, server);
-  poller.start();
-  console.error("[wechat] Message polling started.");
+  // Try to load existing token — don't block if missing
+  const stored = loadStoredToken();
+  if (stored) {
+    console.error("[wechat] Found saved token, connecting...");
+    client = new ILinkClient(stored.bot_token, stored.baseurl);
+    poller = new MessagePoller(client, server);
+    poller.start();
+    console.error("[wechat] Message polling started.");
+  } else {
+    console.error("[wechat] No token found. Run /wechat:wechat-configure login to authenticate.");
+  }
 }
 
 main().catch((err) => {

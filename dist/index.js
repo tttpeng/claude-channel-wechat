@@ -18041,24 +18041,8 @@ var import_qrcode = __toESM(require_server(), 1);
 import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
-var ILINK_BASE_URL2 = "https://ilinkai.weixin.qq.com";
 var CONFIG_DIR = join(homedir(), ".config", "claude-channel-wechat");
 var TOKEN_FILE = join(CONFIG_DIR, "token.json");
-function randomUin2() {
-  const num = Math.floor(Math.random() * 4294967295);
-  return btoa(String(num));
-}
-function makeHeaders2(token) {
-  const headers = {
-    "Content-Type": "application/json",
-    AuthorizationType: "ilink_bot_token",
-    "X-WECHAT-UIN": randomUin2()
-  };
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-  return headers;
-}
 function loadStoredToken() {
   if (!existsSync(TOKEN_FILE))
     return null;
@@ -18066,103 +18050,6 @@ function loadStoredToken() {
     return JSON.parse(readFileSync(TOKEN_FILE, "utf-8"));
   } catch {
     return null;
-  }
-}
-function saveToken(token) {
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(TOKEN_FILE, JSON.stringify(token, null, 2));
-  try {
-    chmodSync(TOKEN_FILE, 384);
-  } catch {}
-}
-async function verifyToken(token, baseUrl) {
-  try {
-    const controller = new AbortController;
-    setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(`${baseUrl}/ilink/bot/getupdates`, {
-      method: "POST",
-      headers: makeHeaders2(token),
-      body: JSON.stringify({
-        get_updates_buf: "",
-        base_info: { channel_version: "1.0.2" }
-      }),
-      signal: controller.signal
-    });
-    if (!res.ok)
-      return false;
-    return true;
-  } catch (e) {
-    if (e instanceof Error && e.name === "AbortError") {
-      return true;
-    }
-    return false;
-  }
-}
-async function login() {
-  const stored = loadStoredToken();
-  if (stored) {
-    console.error("[wechat] Found stored token, verifying...");
-    const valid = await verifyToken(stored.bot_token, stored.baseurl || ILINK_BASE_URL2);
-    if (valid) {
-      console.error("[wechat] Stored token is valid.");
-      return { token: stored.bot_token, baseUrl: stored.baseurl || ILINK_BASE_URL2 };
-    }
-    console.error("[wechat] Stored token expired, re-authenticating...");
-  }
-  console.error("[wechat] Requesting QR code...");
-  const qrRes = await fetch(`${ILINK_BASE_URL2}/ilink/bot/get_bot_qrcode?bot_type=3`, { headers: makeHeaders2() });
-  if (!qrRes.ok) {
-    throw new Error(`Failed to get QR code: ${qrRes.status}`);
-  }
-  const qrData = await qrRes.json();
-  const qrcode = qrData.qrcode;
-  const qrImgContent = qrData.qrcode_img_content;
-  const qrUrl = qrImgContent && qrImgContent.startsWith("http") ? qrImgContent : `https://liteapp.weixin.qq.com/q/?qrcode=${encodeURIComponent(qrcode)}&bot_type=3`;
-  console.error("[wechat] ==========================================");
-  console.error("[wechat] Please scan with WeChat:");
-  console.error("");
-  try {
-    const qrAscii = await import_qrcode.default.toString(qrUrl, { type: "terminal", small: true });
-    process.stderr.write(qrAscii + `
-`);
-  } catch {
-    console.error(`[wechat] (Could not render QR in terminal)`);
-  }
-  console.error(`[wechat] URL: ${qrUrl}`);
-  console.error("[wechat] ==========================================");
-  console.error("[wechat] Waiting for QR code scan...");
-  let scannedPrinted = false;
-  while (true) {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    try {
-      const statusRes = await fetch(`${ILINK_BASE_URL2}/ilink/bot/get_qrcode_status?qrcode=${encodeURIComponent(qrcode)}`, { headers: makeHeaders2() });
-      if (!statusRes.ok)
-        continue;
-      const statusData = await statusRes.json();
-      if (statusData.status === "scaned" && !scannedPrinted) {
-        console.error("[wechat] QR code scanned! Please confirm on your phone...");
-        scannedPrinted = true;
-      }
-      if (statusData.status === "confirmed" && statusData.bot_token) {
-        console.error("[wechat] Login successful!");
-        const result = {
-          token: statusData.bot_token,
-          baseUrl: statusData.baseurl || ILINK_BASE_URL2
-        };
-        saveToken({
-          bot_token: result.token,
-          baseurl: result.baseUrl,
-          created_at: Date.now()
-        });
-        return result;
-      }
-      if (statusData.status === "expired") {
-        throw new Error("QR code expired. Please restart to get a new one.");
-      }
-    } catch (e) {
-      if (e instanceof Error && e.message.includes("expired"))
-        throw e;
-    }
   }
 }
 
@@ -18415,7 +18302,9 @@ Write short, plain-text responses. WeChat does not render markdown, so avoid for
 
 If a message includes an image_path attribute, use the Read tool to view the attached photo. Voice messages include a transcription prefixed with [\u8BED\u97F3\u8F6C\u6587\u5B57]. File attachments show as [\u6587\u4EF6] followed by the filename.
 
-Preserve any important details from tool results in your response text, since earlier tool output may be compacted later.`;
+Preserve any important details from tool results in your response text, since earlier tool output may be compacted later.
+
+When the channel is not connected, guide the user to run /wechat:wechat-configure to set up.`;
 async function main() {
   console.error("[wechat] Starting WeChat channel plugin...");
   const server = new Server({ name: "wechat", version: "0.1.0" }, {
@@ -18433,7 +18322,7 @@ async function main() {
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
     if (!client || !poller) {
       return {
-        content: [{ type: "text", text: "WeChat is still logging in, please wait..." }],
+        content: [{ type: "text", text: "WeChat not connected. Run /wechat:wechat-configure login to authenticate." }],
         isError: true
       };
     }
@@ -18443,11 +18332,16 @@ async function main() {
   const transport = new StdioServerTransport;
   await server.connect(transport);
   console.error("[wechat] MCP server connected via stdio.");
-  const { token, baseUrl } = await login();
-  client = new ILinkClient(token, baseUrl);
-  poller = new MessagePoller(client, server);
-  poller.start();
-  console.error("[wechat] Message polling started.");
+  const stored = loadStoredToken();
+  if (stored) {
+    console.error("[wechat] Found saved token, connecting...");
+    client = new ILinkClient(stored.bot_token, stored.baseurl);
+    poller = new MessagePoller(client, server);
+    poller.start();
+    console.error("[wechat] Message polling started.");
+  } else {
+    console.error("[wechat] No token found. Run /wechat:wechat-configure login to authenticate.");
+  }
 }
 main().catch((err) => {
   console.error("[wechat] Fatal error:", err);
