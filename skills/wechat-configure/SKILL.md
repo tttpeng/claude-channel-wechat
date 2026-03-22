@@ -52,7 +52,7 @@ Read the token file and give the user a complete picture:
 
 2. **What next** — based on state give a concrete next step:
    - No token → *"Run `/wechat:wechat-configure login` to scan QR code and pair your WeChat account."*
-   - Token exists, connection OK → *"Ready. Send a message from WeChat to reach the assistant. Restart Claude Code with `--dangerously-load-development-channels` to enable the channel."*
+   - Token exists, connection OK → *"Ready. Send a message from WeChat to reach the assistant. Restart Claude Code to enable the channel:"* then show: `claude --dangerously-load-development-channels plugin:wechat@claude-channel-wechat`
    - Token exists, connection FAILED → *"Token may have expired. Run `/wechat:wechat-configure login` to re-authenticate."*
 
 3. **Supported features** — list briefly:
@@ -83,7 +83,7 @@ Explain:
 3. *"After login succeeds, come back here and restart Claude Code:"*
 
 ```
-claude --dangerously-load-development-channels server:wechat
+claude --dangerously-load-development-channels plugin:wechat@claude-channel-wechat
 ```
 
 ### `clear` — remove saved token
