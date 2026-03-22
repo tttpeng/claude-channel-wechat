@@ -165,9 +165,12 @@ export async function uploadMedia(
         continue;
       }
 
-      downloadParam = uploadRes.headers.get("x-encrypted-query-param") || "";
+      // CDN may return the param under either header name
+      downloadParam = uploadRes.headers.get("x-encrypted-query-param")
+        || uploadRes.headers.get("x-encrypted-param") || "";
       if (downloadParam) break;
-      console.error(`[wechat] CDN upload attempt ${attempt}: missing x-encrypted-query-param`);
+      const hdrs = Object.fromEntries(uploadRes.headers.entries());
+      console.error(`[wechat] CDN upload attempt ${attempt}: no download param, headers: ${JSON.stringify(hdrs)}`);
     } catch (e) {
       console.error(`[wechat] CDN upload attempt ${attempt} error:`, e);
       if (attempt === UPLOAD_MAX_RETRIES) throw e;

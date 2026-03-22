@@ -139,7 +139,7 @@ export class ILinkClient {
     toUserId: string,
     contextToken: string,
     text: string,
-    messageState: 1 | 2 = 1  // 1=partial/ongoing, 2=complete
+    messageState: 1 | 2 = 2  // 1=partial/ongoing, 2=complete
   ): Promise<boolean> {
     const payload = {
       msg: {
@@ -151,6 +151,7 @@ export class ILinkClient {
         context_token: contextToken,
         item_list: [{ type: 1, text_item: { text } }],
       },
+      base_info: { channel_version: "1.0.2" },
     };
 
     console.error(`[wechat] sendmessage request: to=${toUserId}, state=${messageState}, token=${contextToken.slice(0, 20)}..., text=${text.slice(0, 50)}...`);
@@ -204,6 +205,7 @@ export class ILinkClient {
         context_token: contextToken,
         item_list: [item],
       },
+      base_info: { channel_version: "1.0.2" },
     };
 
     console.error(`[wechat] sendMediaItem: type=${item.type}, to=${toUserId}`);

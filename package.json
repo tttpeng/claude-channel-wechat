@@ -1,6 +1,6 @@
 {
   "name": "claude-channel-wechat",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "WeChat channel plugin for Claude Code via iLink protocol",
   "module": "src/index.ts",
   "type": "module",

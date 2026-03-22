@@ -17971,7 +17971,7 @@ class ILinkClient {
     }
     return { msgs: data.msgs || [], cursor: this.cursor };
   }
-  async sendMessage(toUserId, contextToken, text, messageState = 1) {
+  async sendMessage(toUserId, contextToken, text, messageState = 2) {
     const payload = {
       msg: {
         from_user_id: "",
@@ -17981,7 +17981,8 @@ class ILinkClient {
         message_state: messageState,
         context_token: contextToken,
         item_list: [{ type: 1, text_item: { text } }]
-      }
+      },
+      base_info: { channel_version: "1.0.2" }
     };
     console.error(`[wechat] sendmessage request: to=${toUserId}, state=${messageState}, token=${contextToken.slice(0, 20)}..., text=${text.slice(0, 50)}...`);
     try {
@@ -18018,7 +18019,8 @@ class ILinkClient {
         message_state: 2,
         context_token: contextToken,
         item_list: [item]
-      }
+      },
+      base_info: { channel_version: "1.0.2" }
     };
     console.error(`[wechat] sendMediaItem: type=${item.type}, to=${toUserId}`);
     try {
@@ -18223,10 +18225,11 @@ async function uploadMedia(botToken, baseUrl, toUserId, filePath, mediaType) {
         console.error(`[wechat] CDN upload attempt ${attempt} failed: ${uploadRes.status}`);
         continue;
       }
-      downloadParam = uploadRes.headers.get("x-encrypted-query-param") || "";
+      downloadParam = uploadRes.headers.get("x-encrypted-query-param") || uploadRes.headers.get("x-encrypted-param") || "";
       if (downloadParam)
         break;
-      console.error(`[wechat] CDN upload attempt ${attempt}: missing x-encrypted-query-param`);
+      const hdrs = Object.fromEntries(uploadRes.headers.entries());
+      console.error(`[wechat] CDN upload attempt ${attempt}: no download param, headers: ${JSON.stringify(hdrs)}`);
     } catch (e) {
       console.error(`[wechat] CDN upload attempt ${attempt} error:`, e);
       if (attempt === UPLOAD_MAX_RETRIES)
