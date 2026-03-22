@@ -64,16 +64,24 @@ Read the token file and give the user a complete picture:
 
 ### `login` — scan QR to authenticate
 
-Run the standalone setup script to initiate QR login:
+Do NOT run the login script inside this session. QR scanning requires an interactive terminal and takes too long for the Bash tool.
 
-```bash
-bun ${CLAUDE_PLUGIN_ROOT:-$(pwd)}/src/setup-login.ts
+Instead, tell the user to open a **separate terminal** and run:
+
+```
+bun ~/.claude/plugins/cache/claude-channel-wechat/wechat/*/src/setup-login.ts
 ```
 
-This will display a QR code in the terminal. The user scans it with WeChat to complete authentication. Token is saved automatically.
+Or if installed manually:
+```
+cd <project-dir> && bun src/setup-login.ts
+```
 
-After login completes, tell the user:
-*"Login successful. Restart Claude Code with the WeChat channel to start receiving messages:"*
+Explain:
+1. *"Open another terminal window and run the command above."*
+2. *"A QR code will appear — scan it with WeChat."*
+3. *"After login succeeds, come back here and restart Claude Code:"*
+
 ```
 claude --dangerously-load-development-channels server:wechat
 ```
