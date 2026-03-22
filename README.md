@@ -48,6 +48,12 @@ Or for manual installation:
 claude --dangerously-load-development-channels server:wechat
 ```
 
+To auto-approve all WeChat plugin tool calls (so replies don't require manual permission), add `--allowedTools`:
+
+```bash
+claude --dangerously-load-development-channels plugin:wechat@claude-channel-wechat --allowedTools "mcp__wechat__*"
+```
+
 Then configure the WeChat connection:
 
 1. Run `/wechat:wechat-configure` to check status
@@ -136,6 +142,12 @@ claude --dangerously-load-development-channels plugin:wechat@claude-channel-wech
 
 ```bash
 claude --dangerously-load-development-channels server:wechat
+```
+
+如需自动授权微信插件的所有工具调用（回复消息时无需手动确认），可加 `--allowedTools`：
+
+```bash
+claude --dangerously-load-development-channels plugin:wechat@claude-channel-wechat --allowedTools "mcp__wechat__*"
 ```
 
 然后配置微信连接：
