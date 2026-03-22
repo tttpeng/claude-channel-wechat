@@ -4,7 +4,7 @@
   "description": "WeChat channel plugin for Claude Code — receive and reply to WeChat messages via iLink protocol",
   "channel": true,
   "runtime": "bun",
-  "entry": "src/index.ts",
+  "entry": "dist/index.js",
   "author": {
     "name": "tttpeng"
   },
