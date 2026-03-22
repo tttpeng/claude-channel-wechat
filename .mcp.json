@@ -2,7 +2,7 @@
   "mcpServers": {
     "wechat": {
       "command": "bun",
-      "args": ["./dist/index.js"]
+      "args": ["${CLAUDE_PLUGIN_ROOT}/dist/index.js"]
     }
   }
 }
