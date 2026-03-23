@@ -6,7 +6,7 @@
 
 ## English
 
-WeChat channel plugin for Claude Code. Control your Claude Code session remotely via WeChat.
+WeChat channel plugin for Claude Code. Control your Claude Code session remotely via WeChat — send text, images, files, voice, and video.
 
 ### Prerequisites
 
@@ -75,10 +75,10 @@ Token is cached at `~/.claude/channels/wechat/token.json` — no need to re-scan
 | Type | Receive | Send |
 |------|---------|------|
 | Text | Yes | Yes |
-| Image | Yes (auto-download + AES decrypt) | No |
+| Image | Yes (CDN download + AES-128-ECB decrypt) | Yes (AES encrypt + CDN upload) |
+| File | Yes (CDN download + decrypt) | Yes (encrypt + CDN upload) |
 | Voice | Yes (transcription) | No |
-| File | Yes (filename) | No |
-| Video | Yes (notification) | No |
+| Video | Yes (CDN download + decrypt) | No |
 
 ### How It Works
 
@@ -86,11 +86,15 @@ Token is cached at `~/.claude/channels/wechat/token.json` — no need to re-scan
 WeChat User <--iLink API--> MCP Server (local) <--stdio--> Claude Code
 ```
 
-1. WeChat user sends a message
-2. Plugin receives it via iLink long-polling (`getupdates`)
-3. Plugin pushes it as a channel event to Claude Code
-4. Claude processes the request and calls the `reply` tool
-5. Plugin sends the reply back to WeChat via iLink (`sendmessage`)
+**Receiving messages:**
+1. Plugin long-polls iLink `getupdates` for incoming WeChat messages
+2. Text is forwarded as channel events; media is downloaded from CDN and decrypted
+3. Claude processes the request with full filesystem and tool access
+
+**Sending messages:**
+1. Claude calls the `reply` tool with text and/or file paths
+2. Text is sent directly via iLink `sendmessage`
+3. Files are encrypted with AES-128-ECB, uploaded to WeChat CDN, then sent as media messages
 
 ### Notes
 
@@ -102,7 +106,7 @@ WeChat User <--iLink API--> MCP Server (local) <--stdio--> Claude Code
 
 ## 中文
 
-微信 Channel 插件，通过微信远程控制你的 Claude Code session。
+微信 Channel 插件，通过微信远程控制你的 Claude Code session。支持文本、图片、文件、语音、视频的收发。
 
 ### 前置要求
 
@@ -171,10 +175,10 @@ Token 会缓存到 `~/.claude/channels/wechat/token.json`，之后无需重复�
 | 类型 | 接收 | 发送 |
 |------|------|------|
 | 文本 | 支持 | 支持 |
-| 图片 | 支持（自动下载 + AES 解密） | 不支持 |
+| 图片 | 支持（CDN 下载 + AES-128-ECB 解密） | 支持（AES 加密 + CDN 上传） |
+| 文件 | 支持（CDN 下载 + 解密） | 支持（加密 + CDN 上传） |
 | 语音 | 支持（语音转文字） | 不支持 |
-| 文件 | 支持（文件名） | 不支持 |
-| 视频 | 支持（通知） | 不支持 |
+| 视频 | 支持（CDN 下载 + 解密） | 不支持 |
 
 ### 工作原理
 
@@ -182,11 +186,15 @@ Token 会缓存到 `~/.claude/channels/wechat/token.json`，之后无需重复�
 微信用户 <--iLink协议--> MCP Server（本地）<--stdio--> Claude Code
 ```
 
-1. 微信用户发送消息
-2. 插件通过 iLink 长轮询（`getupdates`）收到消息
-3. 插件将消息作为 channel event 推送到 Claude Code
-4. Claude 处理请求并调用 `reply` tool
-5. 插件通过 iLink（`sendmessage`）将回复发回微信
+**接收消息：**
+1. 插件通过 iLink `getupdates` 长轮询接收微信消息
+2. 文本直接转发为 channel 事件；媒体从 CDN 下载并解密
+3. Claude 处理请求，可访问文件系统和所有工具
+
+**发送消息：**
+1. Claude 调用 `reply` tool，传入文本和/或文件路径
+2. 文本直接通过 iLink `sendmessage` 发送
+3. 文件先用 AES-128-ECB 加密，上传到微信 CDN，再作为媒体消息发送
 
 ### 注意事项
 
