@@ -18009,50 +18009,6 @@ class ILinkClient {
       return false;
     }
   }
-  async sendMediaItem(toUserId, contextToken, item) {
-    const payload = {
-      msg: {
-        from_user_id: "",
-        to_user_id: toUserId,
-        client_id: `cc-${crypto.randomUUID()}`,
-        message_type: 2,
-        message_state: 2,
-        context_token: contextToken,
-        item_list: [item]
-      },
-      base_info: { channel_version: "1.0.2" }
-    };
-    console.error(`[wechat] sendMediaItem: type=${item.type}, to=${toUserId}`);
-    try {
-      const body = JSON.stringify(payload);
-      const headers = makeHeaders(this.token);
-      headers["Content-Length"] = String(new TextEncoder().encode(body).byteLength);
-      const res = await fetch(`${this.baseUrl}/ilink/bot/sendmessage`, {
-        method: "POST",
-        headers,
-        body
-      });
-      const resText = await res.text();
-      console.error(`[wechat] sendMediaItem HTTP ${res.status}: ${resText.slice(0, 300)}`);
-      try {
-        const resData = JSON.parse(resText);
-        if (typeof resData.ret === "number" && resData.ret < 0) {
-          console.error(`[wechat] sendMediaItem error: ret=${resData.ret}`);
-          return false;
-        }
-      } catch {}
-      return true;
-    } catch (err) {
-      console.error(`[wechat] sendMediaItem error:`, err);
-      return false;
-    }
-  }
-  getToken() {
-    return this.token;
-  }
-  getBaseUrl() {
-    return this.baseUrl;
-  }
   async sendTyping(toUserId, typingTicket) {
     await fetch(`${this.baseUrl}/ilink/bot/sendtyping`, {
       method: "POST",
@@ -18099,18 +18055,17 @@ function loadStoredToken() {
 }
 
 // src/poller.ts
-import { existsSync as existsSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync3, mkdirSync as mkdirSync3 } from "fs";
+import { existsSync as existsSync2, readFileSync as readFileSync2, writeFileSync as writeFileSync3, mkdirSync as mkdirSync3 } from "fs";
 import { join as join3 } from "path";
 import { homedir as homedir3 } from "os";
 
 // src/media.ts
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from "crypto";
-import { writeFileSync as writeFileSync2, readFileSync as readFileSync2, mkdirSync as mkdirSync2 } from "fs";
+import { createDecipheriv } from "crypto";
+import { writeFileSync as writeFileSync2, mkdirSync as mkdirSync2 } from "fs";
 import { join as join2 } from "path";
 import { homedir as homedir2 } from "os";
 var MEDIA_DIR = join2(homedir2(), ".claude", "channels", "wechat", "inbox");
 var CDN_BASE_URL = "https://novac2c.cdn.weixin.qq.com/c2c";
-var UPLOAD_MAX_RETRIES = 3;
 mkdirSync2(MEDIA_DIR, { recursive: true });
 function parseAesKey(raw) {
   if (/^[0-9a-fA-F]{32}$/.test(raw)) {
@@ -18123,28 +18078,6 @@ function parseAesKey(raw) {
     return Buffer.from(decoded.toString("utf-8"), "hex");
   }
   throw new Error(`Invalid AES key length: ${decoded.length} bytes after decode`);
-}
-function pkcs7Pad(data) {
-  const blockSize = 16;
-  const padLen = blockSize - data.length % blockSize;
-  const padding = Buffer.alloc(padLen, padLen);
-  return Buffer.concat([data, padding]);
-}
-function encryptAesEcb(plaintext, key) {
-  const padded = pkcs7Pad(plaintext);
-  const cipher = createCipheriv("aes-128-ecb", key, null);
-  cipher.setAutoPadding(false);
-  return Buffer.concat([cipher.update(padded), cipher.final()]);
-}
-function decryptAesEcb(ciphertext, key) {
-  const decipher = createDecipheriv("aes-128-ecb", key, null);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-}
-function md5Hex(data) {
-  return createHash("md5").update(data).digest("hex");
-}
-function aesEcbPaddedSize(plaintextLen) {
-  return Math.ceil((plaintextLen + 16) / 16) * 16;
 }
 async function downloadMedia(encryptQueryParam, aesKey, filename) {
   const cdnUrl = `${CDN_BASE_URL}/download?encrypted_query_param=${encodeURIComponent(encryptQueryParam)}`;
@@ -18161,7 +18094,8 @@ async function downloadMedia(encryptQueryParam, aesKey, filename) {
   let data;
   if (aesKey) {
     const key = parseAesKey(aesKey);
-    data = decryptAesEcb(raw, key);
+    const decipher = createDecipheriv("aes-128-ecb", key, null);
+    data = Buffer.concat([decipher.update(raw), decipher.final()]);
     console.error(`[wechat] Decrypted to ${data.length} bytes`);
   } else {
     data = raw;
@@ -18170,77 +18104,6 @@ async function downloadMedia(encryptQueryParam, aesKey, filename) {
   writeFileSync2(filePath, data);
   console.error(`[wechat] Media saved to: ${filePath}`);
   return filePath;
-}
-var UPLOAD_MEDIA_IMAGE = 1;
-var UPLOAD_MEDIA_FILE = 3;
-async function uploadMedia(botToken, baseUrl, toUserId, filePath, mediaType) {
-  const plaintext = Buffer.from(readFileSync2(filePath));
-  if (plaintext.length === 0)
-    throw new Error("Empty file");
-  const rawSize = plaintext.length;
-  const aesKey = randomBytes(16);
-  const filekey = randomBytes(16).toString("hex");
-  const uploadMediaType = mediaType === "image" ? UPLOAD_MEDIA_IMAGE : UPLOAD_MEDIA_FILE;
-  console.error(`[wechat] Requesting upload URL for ${mediaType}...`);
-  const uploadUrlRes = await fetch(`${baseUrl}/ilink/bot/getuploadurl`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      AuthorizationType: "ilink_bot_token",
-      "X-WECHAT-UIN": Buffer.from(String(Math.floor(Math.random() * 4294967295))).toString("base64"),
-      Authorization: `Bearer ${botToken}`
-    },
-    body: JSON.stringify({
-      filekey,
-      media_type: uploadMediaType,
-      to_user_id: toUserId,
-      rawsize: rawSize,
-      rawfilemd5: md5Hex(plaintext),
-      filesize: aesEcbPaddedSize(rawSize),
-      no_need_thumb: true,
-      aeskey: aesKey.toString("hex"),
-      base_info: { channel_version: "1.0.2" }
-    })
-  });
-  const uploadUrlData = await uploadUrlRes.json();
-  if (!uploadUrlData.upload_param) {
-    throw new Error(`getuploadurl failed: ${JSON.stringify(uploadUrlData)}`);
-  }
-  const ciphertext = encryptAesEcb(plaintext, aesKey);
-  const uploadUrl = `${CDN_BASE_URL}/upload?encrypted_query_param=${encodeURIComponent(uploadUrlData.upload_param)}&filekey=${encodeURIComponent(filekey)}`;
-  console.error(`[wechat] Uploading ${ciphertext.length} bytes to CDN...`);
-  let downloadParam = "";
-  for (let attempt = 1;attempt <= UPLOAD_MAX_RETRIES; attempt++) {
-    try {
-      const uploadRes = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/octet-stream" },
-        body: ciphertext,
-        signal: AbortSignal.timeout(60000)
-      });
-      if (uploadRes.status >= 400 && uploadRes.status < 500) {
-        throw new Error(`CDN upload client error: ${uploadRes.status}`);
-      }
-      if (uploadRes.status !== 200) {
-        console.error(`[wechat] CDN upload attempt ${attempt} failed: ${uploadRes.status}`);
-        continue;
-      }
-      downloadParam = uploadRes.headers.get("x-encrypted-query-param") || uploadRes.headers.get("x-encrypted-param") || "";
-      if (downloadParam)
-        break;
-      const hdrs = Object.fromEntries(uploadRes.headers.entries());
-      console.error(`[wechat] CDN upload attempt ${attempt}: no download param, headers: ${JSON.stringify(hdrs)}`);
-    } catch (e) {
-      console.error(`[wechat] CDN upload attempt ${attempt} error:`, e);
-      if (attempt === UPLOAD_MAX_RETRIES)
-        throw e;
-    }
-  }
-  if (!downloadParam) {
-    throw new Error("CDN upload failed: no download param after retries");
-  }
-  console.error(`[wechat] Upload successful`);
-  return { downloadParam, aesKey, cipherSize: ciphertext.length, rawSize };
 }
 
 // src/poller.ts
@@ -18266,7 +18129,7 @@ class MessagePoller {
   restoreSyncBuf() {
     try {
       if (existsSync2(SYNC_BUF_FILE)) {
-        const cursor = readFileSync3(SYNC_BUF_FILE, "utf-8").trim();
+        const cursor = readFileSync2(SYNC_BUF_FILE, "utf-8").trim();
         if (cursor) {
           this.client.setCursor(cursor);
           console.error(`[wechat] Resumed from saved poll position`);
@@ -18439,8 +18302,6 @@ ${text}`;
 }
 
 // src/tools.ts
-import { existsSync as existsSync3 } from "fs";
-import { basename } from "path";
 var TOOLS = [
   {
     name: "reply",
@@ -18455,98 +18316,31 @@ var TOOLS = [
         text: {
           type: "string",
           description: "Plain text content to deliver (no markdown)"
-        },
-        files: {
-          type: "array",
-          items: { type: "string" },
-          description: "Absolute file paths to attach. Images (jpg/png/gif/webp) send as image messages; other types as file messages."
         }
       },
       required: ["chat_id", "text"]
     }
   }
 ];
-function isImageFile(filePath) {
-  const ext = filePath.toLowerCase().split(".").pop() || "";
-  return ["jpg", "jpeg", "png", "gif", "webp", "bmp"].includes(ext);
-}
-function resolveContext(chatId, poller) {
-  const contextToken = poller.getContextToken(chatId);
-  if (!contextToken) {
-    throw new Error(`Cannot reply to ${chatId} \u2014 no active conversation token. A new inbound message is needed first.`);
-  }
-  return contextToken;
-}
 async function handleToolCall(toolName, args, client, poller) {
   if (toolName === "reply") {
     const chatId = args.chat_id;
-    const text = args.text || "";
-    const files = args.files || [];
-    if (!chatId) {
-      throw new Error("chat_id is required");
+    const text = args.text;
+    if (!chatId || !text) {
+      throw new Error("Both chat_id and text are required for reply");
     }
-    if (!text && files.length === 0) {
-      throw new Error("Either text or files must be provided");
+    const contextToken = poller.getContextToken(chatId);
+    if (!contextToken) {
+      throw new Error(`Cannot reply to ${chatId} \u2014 no active conversation token. A new inbound message is needed first.`);
     }
-    const contextToken = resolveContext(chatId, poller);
-    if (text) {
-      const ok = await client.sendMessage(chatId, contextToken, text, 2);
-      if (!ok) {
-        return {
-          content: [{ type: "text", text: `Text delivery to ${chatId} failed. The conversation token may be stale.` }],
-          isError: true
-        };
-      }
+    const ok = await client.sendMessage(chatId, contextToken, text);
+    if (!ok) {
+      return {
+        content: [{ type: "text", text: `Delivery to ${chatId} failed. The conversation token may be stale \u2014 wait for a fresh inbound message.` }],
+        isError: true
+      };
     }
-    const results = [];
-    for (const filePath of files) {
-      if (!existsSync3(filePath)) {
-        results.push(`${basename(filePath)}: file not found`);
-        continue;
-      }
-      const mediaType = isImageFile(filePath) ? "image" : "file";
-      try {
-        const uploaded = await uploadMedia(client.getToken(), client.getBaseUrl(), chatId, filePath, mediaType);
-        const aesKeyB64 = uploaded.aesKey.toString("base64");
-        let item;
-        if (mediaType === "image") {
-          item = {
-            type: 2,
-            image_item: {
-              media: {
-                encrypt_query_param: uploaded.downloadParam,
-                aes_key: aesKeyB64,
-                encrypt_type: 1
-              },
-              mid_size: uploaded.cipherSize
-            }
-          };
-        } else {
-          item = {
-            type: 4,
-            file_item: {
-              media: {
-                encrypt_query_param: uploaded.downloadParam,
-                aes_key: aesKeyB64,
-                encrypt_type: 1
-              },
-              file_name: basename(filePath),
-              len: String(uploaded.rawSize)
-            }
-          };
-        }
-        const ok = await client.sendMediaItem(chatId, contextToken, item);
-        results.push(`${basename(filePath)}: ${ok ? "sent" : "failed"}`);
-      } catch (e) {
-        console.error(`[wechat] Upload failed for ${filePath}:`, e);
-        results.push(`${basename(filePath)}: upload failed`);
-      }
-    }
-    const summary = text ? "delivered" : "";
-    const fileSummary = results.length > 0 ? results.join(", ") : "";
-    return {
-      content: [{ type: "text", text: [summary, fileSummary].filter(Boolean).join("; ") }]
-    };
+    return { content: [{ type: "text", text: "delivered" }] };
   }
   throw new Error(`Unrecognized tool: ${toolName}`);
 }
@@ -18557,8 +18351,6 @@ var INSTRUCTIONS = `This channel bridges WeChat messages into your session. Your
 Inbound messages appear as <channel source="wechat" chat_id="..." context_token="...">. To respond, call the reply tool with the chat_id value. You do not need to quote-reply the most recent message.
 
 Only the reply tool is available \u2014 WeChat's API does not support editing sent messages or adding reactions.
-
-The reply tool accepts file paths (files: ["/abs/path.png"]) for attachments. Images (jpg/png/gif/webp) are sent as image messages; other file types as file attachments.
 
 Write short, plain-text responses. WeChat does not render markdown, so avoid formatting like bold, headers, or bullet syntax.
 

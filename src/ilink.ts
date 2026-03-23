@@ -190,61 +190,6 @@ export class ILinkClient {
     }
   }
 
-  async sendMediaItem(
-    toUserId: string,
-    contextToken: string,
-    item: Record<string, unknown>
-  ): Promise<boolean> {
-    const payload = {
-      msg: {
-        from_user_id: "",
-        to_user_id: toUserId,
-        client_id: `cc-${crypto.randomUUID()}`,
-        message_type: 2,
-        message_state: 2,
-        context_token: contextToken,
-        item_list: [item],
-      },
-      base_info: { channel_version: "1.0.2" },
-    };
-
-    console.error(`[wechat] sendMediaItem: type=${item.type}, to=${toUserId}`);
-    try {
-      const body = JSON.stringify(payload);
-      const headers = makeHeaders(this.token);
-      headers["Content-Length"] = String(new TextEncoder().encode(body).byteLength);
-
-      const res = await fetch(`${this.baseUrl}/ilink/bot/sendmessage`, {
-        method: "POST",
-        headers,
-        body,
-      });
-
-      const resText = await res.text();
-      console.error(`[wechat] sendMediaItem HTTP ${res.status}: ${resText.slice(0, 300)}`);
-
-      try {
-        const resData = JSON.parse(resText);
-        if (typeof resData.ret === "number" && resData.ret < 0) {
-          console.error(`[wechat] sendMediaItem error: ret=${resData.ret}`);
-          return false;
-        }
-      } catch {}
-      return true;
-    } catch (err) {
-      console.error(`[wechat] sendMediaItem error:`, err);
-      return false;
-    }
-  }
-
-  getToken(): string {
-    return this.token;
-  }
-
-  getBaseUrl(): string {
-    return this.baseUrl;
-  }
-
   async sendTyping(toUserId: string, typingTicket: string): Promise<void> {
     await fetch(`${this.baseUrl}/ilink/bot/sendtyping`, {
       method: "POST",
